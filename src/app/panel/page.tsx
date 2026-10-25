@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,6 +18,26 @@ type Opcion = {
 };
 
 const opcionesPorRol: Record<string, Opcion[]> = {
+  superadministrador: [
+    {
+      titulo: "Administración global",
+      descripcion:
+        "Supervisar la configuración y administración general de IINICIA.",
+      icono: "Global",
+    },
+    {
+      titulo: "Gestión de usuarios y roles",
+      descripcion:
+        "Consultar y administrar las cuentas y los roles de la plataforma.",
+      icono: "Usuarios",
+    },
+    {
+      titulo: "Supervisión del sistema",
+      descripcion:
+        "Consultar el estado general y los servicios del portal.",
+      icono: "Sistema",
+    },
+  ],
   administrador: [
     {
       titulo: "Gestión de usuarios",
@@ -97,6 +118,7 @@ const opcionesPorRol: Record<string, Opcion[]> = {
 };
 
 const nombresRoles: Record<string, string> = {
+  superadministrador: "Superadministrador",
   administrador: "Administrador",
   profesor: "Profesor",
   estudiante: "Estudiante",
@@ -114,9 +136,13 @@ export default function PanelPage() {
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
 
   useEffect(() => {
+    let activo = true;
+
     async function cargarPerfil() {
       const { data: sesionData, error: sesionError } =
         await supabase.auth.getSession();
+
+      if (!activo) return;
 
       if (sesionError || !sesionData.session) {
         router.replace("/login");
@@ -126,9 +152,11 @@ export default function PanelPage() {
       const { data: usuarioData, error: usuarioError } =
         await supabase.auth.getUser();
 
+      if (!activo) return;
+
       if (usuarioError || !usuarioData.user) {
         await supabase.auth.signOut();
-        router.replace("/login");
+        if (activo) router.replace("/login");
         return;
       }
 
@@ -137,6 +165,8 @@ export default function PanelPage() {
         .select("full_name, role")
         .eq("id", usuarioData.user.id)
         .single();
+
+      if (!activo) return;
 
       if (error || !data) {
         setErrorPerfil(true);
@@ -149,6 +179,10 @@ export default function PanelPage() {
     }
 
     cargarPerfil();
+
+    return () => {
+      activo = false;
+    };
   }, [router]);
 
   async function cerrarSesion() {
@@ -180,10 +214,12 @@ export default function PanelPage() {
           <h1 className="text-xl font-bold text-gray-900">
             No pudimos cargar tu perfil
           </h1>
+
           <p className="mt-3 text-gray-600">
             Comprueba tu conexión e inténtalo de nuevo. Si el problema
             continúa, revisaremos la configuración de Supabase.
           </p>
+
           <button
             onClick={() => window.location.reload()}
             className="mt-5 rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white hover:bg-teal-800"
@@ -240,6 +276,7 @@ export default function PanelPage() {
             <h2 className="text-2xl font-bold text-gray-900">
               Mi espacio académico
             </h2>
+
             <p className="mt-2 text-gray-600">
               Estas son las secciones preparadas para tu tipo de cuenta.
             </p>
