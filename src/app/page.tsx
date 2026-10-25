@@ -1,4 +1,5 @@
 import EstadoAPI from "./EstadoAPI";
+import ListaRoles from "./ListaRoles";
 const programas = [
   {
     categoria: "FORMACIÓN PROFESIONAL",
@@ -295,6 +296,7 @@ export default function Home() {
         </div>
       </footer>
       <EstadoAPI />
+      <ListaRoles />
     </main>
   );
 }
