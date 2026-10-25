@@ -1,4 +1,4 @@
-
+import EstadoAPI from "./EstadoAPI";
 const programas = [
   {
     categoria: "FORMACIÓN PROFESIONAL",
@@ -294,6 +294,7 @@ export default function Home() {
           <p>Portal institucional · Proyecto de rediseño y migración</p>
         </div>
       </footer>
+      <EstadoAPI />
     </main>
   );
 }
