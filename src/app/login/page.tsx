@@ -3,31 +3,46 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [cargando, setCargando] = useState(false);
 
-  async function iniciarSesion(e: React.FormEvent<HTMLFormElement>) {
+  async function iniciarSesion(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
     setMensaje("");
     setCargando(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: correo,
-      password: contrasena,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: correo,
+        password: contrasena,
+      });
 
-    if (error) {
-      setMensaje("No se pudo iniciar sesión. Verifica tu correo y contraseña.");
-    } else {
-      window.location.href = "/";
+      if (error) {
+        setMensaje(
+          "No se pudo iniciar sesión. Verifica tu correo y contraseña."
+        );
+        return;
+      }
+
+      router.replace("/panel");
+      router.refresh();
+    } catch {
+      setMensaje(
+        "Ocurrió un error al iniciar sesión. Inténtalo nuevamente."
+      );
+    } finally {
+      setCargando(false);
     }
-
-    setCargando(false);
   }
 
   return (
@@ -56,6 +71,7 @@ export default function LoginPage() {
             >
               Correo electrónico
             </label>
+
             <input
               id="correo"
               type="email"
@@ -75,6 +91,7 @@ export default function LoginPage() {
             >
               Contraseña
             </label>
+
             <input
               id="contrasena"
               type="password"
