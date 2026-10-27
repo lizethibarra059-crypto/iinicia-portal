@@ -1,8 +1,15 @@
 
-import { Controller, Get } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  ServiceUnavailableException,
+} from "@nestjs/common";
+import { SupabaseService } from "./supabase/supabase.service.js";
 
 @Controller("api/roles")
 export class RolesController {
+  constructor(private readonly supabaseService: SupabaseService) {}
+
   @Get()
   obtenerRoles() {
     return [
@@ -14,5 +21,24 @@ export class RolesController {
       { id: "aspirante", nombre: "Aspirante" },
       { id: "soporte", nombre: "Soporte" },
     ];
+  }
+
+  @Get("estado-supabase")
+  async comprobarSupabase() {
+    const { error } = await this.supabaseService
+      .getClient()
+      .from("profiles")
+      .select("id", { count: "exact", head: true });
+
+    if (error) {
+      throw new ServiceUnavailableException(
+        "No se pudo comprobar la conexión con Supabase.",
+      );
+    }
+
+    return {
+      conectado: true,
+      mensaje: "Conexión con Supabase correcta",
+    };
   }
 }
