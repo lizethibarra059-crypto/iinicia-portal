@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-
+import CursosMoodle from "../CursosMoodle";
 type Perfil = {
   full_name: string;
   role: string;
@@ -61,18 +60,10 @@ const opcionesPorRol: Record<string, Opcion[]> = {
       descripcion: "Consultar y gestionar tus documentos académicos.",
       icono: "Documentos",
     },
-    {
-      titulo: "Mis cursos",
-      descripcion: "Consultar tus cursos y actividades académicas.",
-      icono: "Cursos",
-    },
+    
   ],
   estudiante: [
-    {
-      titulo: "Mis cursos",
-      descripcion: "Consultar tus cursos y materiales académicos.",
-      icono: "Cursos",
-    },
+    
     {
       titulo: "Materiales académicos",
       descripcion: "Acceder a los recursos de aprendizaje disponibles.",
@@ -281,7 +272,8 @@ export default function PanelPage() {
               Estas son las secciones preparadas para tu tipo de cuenta.
             </p>
           </div>
-
+          {(perfil?.role === "estudiante" ||
+            perfil?.role === "profesor") && <CursosMoodle />}
           {opciones.length > 0 ? (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {opciones.map((opcion) => (
