@@ -2,9 +2,11 @@
 import {
   Controller,
   Get,
+  UseGuards,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { SupabaseService } from "./supabase/supabase.service.js";
+import { AdminGuard } from "./auth/admin.guard.js";
 
 @Controller("api/roles")
 export class RolesController {

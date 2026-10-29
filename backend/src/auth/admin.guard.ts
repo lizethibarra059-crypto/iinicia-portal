@@ -6,16 +6,23 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { SupabaseService } from "../supabase/supabase.service.js";
+
+type SolicitudAutenticada = Request & {
+  user?: {
+    id: string;
+    role: string;
+  };
+};
 
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<{
-      headers: { authorization?: string };
-    }>();
+    const request =
+      context.switchToHttp().getRequest<SolicitudAutenticada>();
 
     const authorization = request.headers.authorization;
 
@@ -54,6 +61,11 @@ export class AdminGuard implements CanActivate {
         "No tienes permisos para realizar esta operación.",
       );
     }
+
+    request.user = {
+      id: data.user.id,
+      role: perfil.role,
+    };
 
     return true;
   }
