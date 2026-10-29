@@ -7,6 +7,7 @@ import { RolesController } from "./roles.controller.js";
 import { SupabaseService } from "./supabase/supabase.service.js";
 import { MoodleService } from "./moodle/moodle.service.js";
 import { MoodleController } from "./moodle/moodle.controller.js";
+import { AdminGuard } from "./auth/admin.guard.js";
 
 @Module({
   imports: [
@@ -19,6 +20,6 @@ import { MoodleController } from "./moodle/moodle.controller.js";
     }),
   ],
   controllers: [AppController, RolesController, MoodleController],
-  providers: [AppService, SupabaseService, MoodleService],
+  providers: [AppService, SupabaseService, MoodleService, AdminGuard],
 })
 export class AppModule {}
