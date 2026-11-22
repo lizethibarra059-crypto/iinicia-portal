@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   UseGuards,
 } from "@nestjs/common";
+
 import { MoodleService } from "./moodle.service.js";
 import { RolesGuard } from "../auth/roles.guard.js";
 import { Roles } from "../auth/roles.decorator.js";
@@ -36,7 +37,13 @@ export class MoodleController {
   }
 
   @Get("cursos")
-  @Roles("profesor", "estudiante", "coordinador")
+  @Roles(
+    "superadministrador",
+    "administrador",
+    "coordinador",
+    "profesor",
+    "estudiante",
+  )
   async getCursos() {
     const cursos = await this.moodleService.getCourses();
 
@@ -48,16 +55,65 @@ export class MoodleController {
   }
 
   @Get("cursos/:id/contenidos")
-  @Roles("profesor", "estudiante", "coordinador")
+  @Roles(
+    "superadministrador",
+    "administrador",
+    "coordinador",
+    "profesor",
+    "estudiante",
+  )
   async getContenidos(
     @Param("id", ParseIntPipe) id: number,
   ) {
-    const contenidos = await this.moodleService.getCourseContents(id);
+    const contenidos =
+      await this.moodleService.getCourseContents(id);
 
     return {
       conectado: true,
       cursoId: id,
       contenidos,
+    };
+  }
+
+  @Get("cursos/:id/participantes")
+  @Roles(
+    "superadministrador",
+    "administrador",
+    "coordinador",
+  )
+  async getParticipantes(
+    @Param("id", ParseIntPipe) id: number,
+  ) {
+    const participantes =
+      await this.moodleService.getEnrolledUsers(id);
+
+    return {
+      conectado: true,
+      cursoId: id,
+      total: Array.isArray(participantes)
+        ? participantes.length
+        : 0,
+      participantes,
+    };
+  }
+
+  @Get("cursos/:id/actividades")
+  @Roles(
+    "superadministrador",
+    "administrador",
+    "coordinador",
+  )
+  async getActividades(
+    @Param("id", ParseIntPipe) id: number,
+  ) {
+    const actividades =
+      await this.moodleService.getAssignments(id);
+
+    return {
+      conectado: true,
+      cursoId: id,
+      total: actividades.length,
+      actividades,
     };
   }
 }

@@ -51,26 +51,20 @@ export default function AsistenteFlotante() {
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
       let url = `${apiUrl}/asistente/publico`;
-      let headers: Record<string, string> = {
+
+      const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
 
-      if (data.session) {
-        const mfaToken = sessionStorage.getItem("mfaToken");
+      const mfaToken = sessionStorage.getItem("mfaToken");
 
-        if (!mfaToken) {
-          throw new Error(
-            "Tu sesión no tiene una verificación MFA válida. Cierra sesión e inicia nuevamente."
-          );
-        }
-
+      // Solo se utiliza la ruta privada cuando existen
+      // una sesión y un token MFA.
+      if (data.session && mfaToken) {
         url = `${apiUrl}/asistente/preguntar`;
 
-        headers = {
-          ...headers,
-          Authorization: `Bearer ${data.session.access_token}`,
-          "X-MFA-Token": mfaToken,
-        };
+        headers.Authorization = `Bearer ${data.session.access_token}`;
+        headers["X-MFA-Token"] = mfaToken;
       }
 
       const respuesta = await fetch(url, {
@@ -118,7 +112,6 @@ export default function AsistenteFlotante() {
     <div className="fixed bottom-5 right-5 z-[9999] flex flex-col items-end gap-3">
       {abierto && (
         <div className="flex h-[480px] w-[350px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-
           <div className="flex items-center justify-between bg-[#0864F5] p-4 text-white">
             <div>
               <h3 className="font-bold">Asistente IINICIA</h3>

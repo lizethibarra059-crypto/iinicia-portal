@@ -5,6 +5,8 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -38,6 +40,11 @@ type Rol = (typeof ROLES)[number];
 type CrearUsuarioBody = {
   nombre: string;
   correo: string;
+  rol: string;
+};
+
+type EditarUsuarioBody = {
+  nombre: string;
   rol: string;
 };
 
@@ -100,6 +107,34 @@ export class UsuariosController {
       nombre,
       correo,
       rol as Rol,
+    );
+  }
+
+  @Patch(":id")
+  async editar(
+    @Param("id") id: string,
+    @Body() body: EditarUsuarioBody,
+    @Req() solicitud: SolicitudAutenticada,
+  ) {
+    const nombre = body.nombre?.trim();
+    const rol = body.rol?.trim();
+
+    if (!id || !nombre || !rol) {
+      throw new BadRequestException(
+        "El identificador, nombre y rol son obligatorios.",
+      );
+    }
+
+    if (!ROLES.includes(rol as Rol)) {
+      throw new BadRequestException("El rol seleccionado no es válido.");
+    }
+
+    return this.usuariosService.editarUsuario(
+      id,
+      nombre,
+      rol as Rol,
+      solicitud.user?.role ?? "",
+      solicitud.user?.id ?? "",
     );
   }
 }

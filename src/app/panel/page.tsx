@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import CursosMoodle from "../CursosMoodle";
+import CoordinadorMoodle from "../CoordinadorMoodle";
 
 type Perfil = {
   full_name: string;
@@ -24,20 +25,17 @@ const opcionesPorRol: Record<string, Opcion[]> = {
   superadministrador: [
     {
       titulo: "Administración global",
-      descripcion:
-        "Supervisar la configuración y administración general de IINICIA.",
+      descripcion: "Supervisar la configuración y administración general de IINICIA.",
       icono: "GL",
     },
     {
       titulo: "Gestión de usuarios y roles",
-      descripcion:
-        "Consultar y administrar las cuentas y los roles de la plataforma.",
+      descripcion: "Consultar y administrar las cuentas y los roles de la plataforma.",
       icono: "US",
     },
     {
       titulo: "Supervisión del sistema",
-      descripcion:
-        "Consultar el estado general y los servicios del portal.",
+      descripcion: "Consultar el estado general y los servicios del portal.",
       icono: "SI",
     },
   ],
@@ -75,12 +73,12 @@ const opcionesPorRol: Record<string, Opcion[]> = {
   coordinador: [
     {
       titulo: "Supervisión académica",
-      descripcion: "Consultar las actividades y entregas académicas.",
+      descripcion: "Consultar cursos, participantes y actividades académicas.",
       icono: "SA",
     },
     {
       titulo: "Seguimiento de cursos",
-      descripcion: "Dar seguimiento a las actividades de los cursos.",
+      descripcion: "Dar seguimiento a los cursos registrados en Moodle.",
       icono: "CU",
     },
   ],
@@ -133,7 +131,6 @@ export default function PanelPage() {
 
     async function cargarPerfil() {
       try {
-        // 1. Comprobar que exista una sesión de Supabase.
         const { data: sesionData, error: sesionError } =
           await supabase.auth.getSession();
 
@@ -144,17 +141,14 @@ export default function PanelPage() {
           return;
         }
 
-        // 2. Comprobar que exista el token del segundo factor.
         const mfaToken = sessionStorage.getItem("mfaToken");
 
         if (!mfaToken) {
           await supabase.auth.signOut();
-
           if (activo) router.replace("/login");
           return;
         }
 
-        // 3. Validar el segundo factor directamente con el backend.
         const respuestaMfa = await fetch(`${API}/validar`, {
           method: "GET",
           headers: {
@@ -168,14 +162,11 @@ export default function PanelPage() {
         if (!respuestaMfa.ok) {
           sessionStorage.removeItem("mfaToken");
           sessionStorage.removeItem("idVerificacion");
-
           await supabase.auth.signOut();
-
           if (activo) router.replace("/login");
           return;
         }
 
-        // 4. Comprobar la identidad del usuario con Supabase.
         const { data: usuarioData, error: usuarioError } =
           await supabase.auth.getUser();
 
@@ -184,12 +175,10 @@ export default function PanelPage() {
         if (usuarioError || !usuarioData.user) {
           sessionStorage.removeItem("mfaToken");
           await supabase.auth.signOut();
-
           if (activo) router.replace("/login");
           return;
         }
 
-        // 5. Obtener el perfil y el rol del usuario.
         const { data, error } = await supabase
           .from("profiles")
           .select("full_name, role")
@@ -208,7 +197,6 @@ export default function PanelPage() {
         setCargando(false);
       } catch {
         if (!activo) return;
-
         setErrorPerfil(true);
         setCargando(false);
       }
@@ -224,7 +212,6 @@ export default function PanelPage() {
   async function cerrarSesion() {
     setCerrandoSesion(true);
 
-    // Eliminar los datos del segundo factor.
     sessionStorage.removeItem("mfaToken");
     sessionStorage.removeItem("idVerificacion");
 
@@ -259,23 +246,19 @@ export default function PanelPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-2xl text-red-400">
             !
           </div>
-
           <h1 className="mt-6 text-xl font-bold">
             No pudimos cargar tu perfil
           </h1>
-
           <p className="mt-3 leading-7 text-slate-400">
-            Comprueba tu conexión e inténtalo de nuevo. Si el problema
-            continúa, revisaremos la configuración de Supabase.
+            Comprueba tu conexión e inténtalo de nuevo. Si el problema continúa,
+            revisaremos la configuración de Supabase.
           </p>
-
           <button
             onClick={() => window.location.reload()}
             className="mt-6 rounded-xl bg-[#0864F5] px-6 py-3 font-bold text-white transition hover:bg-[#0052D6]"
           >
             Reintentar
           </button>
-
           <button
             onClick={cerrarSesion}
             className="mt-3 block w-full rounded-xl border border-white/10 px-6 py-3 font-semibold text-slate-300 transition hover:bg-white/5"
@@ -292,7 +275,6 @@ export default function PanelPage() {
 
   return (
     <main className="flex min-h-screen bg-[#080B18] text-white">
-      {/* Menú lateral */}
       <aside className="hidden w-[260px] shrink-0 flex-col border-r border-white/10 bg-[#0B1020] lg:flex">
         <div className="border-b border-white/10 px-6 py-5">
           <Link href="/" className="inline-block">
@@ -302,7 +284,6 @@ export default function PanelPage() {
               className="h-24 w-40 object-contain object-left"
             />
           </Link>
-
           <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#00B9E8]">
             Portal académico
           </p>
@@ -312,7 +293,6 @@ export default function PanelPage() {
           <p className="mb-4 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Menú principal
           </p>
-
           <nav className="space-y-2">
             <a
               href="#inicio-panel"
@@ -323,7 +303,6 @@ export default function PanelPage() {
               </span>
               Inicio
             </a>
-
             <a
               href="#espacio-academico"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
@@ -333,7 +312,6 @@ export default function PanelPage() {
               </span>
               Mi espacio académico
             </a>
-
             <a
               href="#mis-opciones"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
@@ -346,14 +324,10 @@ export default function PanelPage() {
           </nav>
 
           <div className="mt-12 rounded-2xl border border-[#0864F5]/20 bg-gradient-to-br from-[#0864F5]/15 to-[#00B9E8]/5 p-4">
-            <p className="text-xs font-bold text-[#75E5FF]">
-              IINICIA
-            </p>
-
+            <p className="text-xs font-bold text-[#75E5FF]">IINICIA</p>
             <p className="mt-2 text-sm font-semibold text-white">
               Educación e innovación
             </p>
-
             <p className="mt-2 text-xs leading-5 text-slate-400">
               Tu espacio para aprender, crecer y desarrollar nuevas ideas.
             </p>
@@ -365,7 +339,6 @@ export default function PanelPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0864F5]/20 font-bold text-[#75E5FF]">
               {perfil.full_name?.charAt(0)?.toUpperCase() || "U"}
             </div>
-
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-white">
                 {perfil.full_name || "Usuario"}
@@ -373,7 +346,6 @@ export default function PanelPage() {
               <p className="text-xs text-slate-400">{nombreRol}</p>
             </div>
           </div>
-
           <button
             onClick={cerrarSesion}
             disabled={cerrandoSesion}
@@ -384,9 +356,7 @@ export default function PanelPage() {
         </div>
       </aside>
 
-      {/* Contenido principal */}
       <div className="min-w-0 flex-1">
-        {/* Encabezado */}
         <header className="sticky top-0 z-40 border-b border-white/10 bg-[#080B18]/90 backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-8">
             <div className="flex items-center gap-3 lg:hidden">
@@ -398,30 +368,24 @@ export default function PanelPage() {
                 />
               </Link>
             </div>
-
             <div className="hidden lg:block">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Plataforma institucional
               </p>
-
               <p className="mt-1 text-sm text-slate-400">
                 Instituto de Innovación y Ciencias Aplicadas
               </p>
             </div>
-
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-bold text-white">
                   {perfil.full_name || "Usuario"}
                 </p>
-
                 <p className="text-xs text-slate-400">{nombreRol}</p>
               </div>
-
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/15 font-bold text-[#75E5FF]">
                 {perfil.full_name?.charAt(0)?.toUpperCase() || "U"}
               </div>
-
               <button
                 onClick={cerrarSesion}
                 disabled={cerrandoSesion}
@@ -434,7 +398,6 @@ export default function PanelPage() {
         </header>
 
         <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
-          {/* Bienvenida */}
           <section
             id="inicio-panel"
             className="relative overflow-hidden rounded-3xl border border-[#0864F5]/30 bg-gradient-to-br from-[#10254C] via-[#10203E] to-[#10182C] p-7 shadow-2xl shadow-blue-950/20 md:p-10"
@@ -460,16 +423,15 @@ export default function PanelPage() {
               </h1>
 
               <p className="mt-5 max-w-2xl leading-7 text-slate-300">
-                Este es tu espacio personal dentro del portal IINICIA.
-                Desde aquí puedes consultar tus recursos y acceder a las
-                herramientas disponibles para tu cuenta.
+                Este es tu espacio personal dentro del portal IINICIA. Desde
+                aquí puedes consultar tus recursos y acceder a las herramientas
+                disponibles para tu cuenta.
               </p>
 
               <div className="mt-7 inline-flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-5 py-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
                   Tu rol
                 </span>
-
                 <span className="rounded-lg bg-[#0864F5]/20 px-3 py-1 text-sm font-bold text-[#75E5FF]">
                   {nombreRol}
                 </span>
@@ -477,21 +439,24 @@ export default function PanelPage() {
             </div>
           </section>
 
-          {/* Espacio académico */}
           <section id="espacio-academico" className="mt-12">
             <div className="mb-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Tu plataforma
               </p>
-
               <h2 className="mt-3 text-2xl font-extrabold text-white md:text-3xl">
                 Mi espacio académico
               </h2>
-
               <p className="mt-3 text-sm leading-7 text-slate-400">
                 Accede a tus cursos, materiales y recursos académicos.
               </p>
             </div>
+
+            {perfil.role === "coordinador" && (
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
+                <CoordinadorMoodle />
+              </div>
+            )}
 
             {(perfil.role === "estudiante" ||
               perfil.role === "profesor") && (
@@ -501,19 +466,16 @@ export default function PanelPage() {
             )}
           </section>
 
-          {/* Opciones por rol */}
           <section id="mis-opciones" className="mt-12">
             <div className="mb-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Herramientas disponibles
               </p>
-
               <h2 className="mt-3 text-2xl font-extrabold text-white md:text-3xl">
                 Mis secciones
               </h2>
-
               <p className="mt-3 text-sm leading-7 text-slate-400">
-                Estas son las secciones preparadas para tu tipo de cuenta.
+                Estas son las secciones disponibles para tu tipo de cuenta.
               </p>
             </div>
 
@@ -530,19 +492,15 @@ export default function PanelPage() {
                       className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#0864F5]/60 hover:bg-[#151F39] hover:shadow-xl hover:shadow-blue-950/20"
                     >
                       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#0864F5]/10 blur-2xl transition group-hover:bg-[#00B9E8]/15" />
-
                       <div className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/15 text-sm font-black tracking-wider text-[#75E5FF]">
                         {opcion.icono}
                       </div>
-
                       <h3 className="relative mt-6 text-lg font-bold text-white">
                         {opcion.titulo}
                       </h3>
-
                       <p className="relative mt-3 text-sm leading-7 text-slate-400">
                         {opcion.descripcion}
                       </p>
-
                       {esGestionUsuarios ? (
                         <Link
                           href="/usuarios"
@@ -553,7 +511,9 @@ export default function PanelPage() {
                       ) : (
                         <p className="relative mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00B9E8]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#00B9E8]" />
-                          Sección en preparación
+                          {perfil.role === "coordinador"
+                            ? "Consulta disponible en espacio académico"
+                            : "Sección en preparación"}
                         </p>
                       )}
                     </article>
@@ -568,7 +528,6 @@ export default function PanelPage() {
             )}
           </section>
 
-          {/* Pie de página */}
           <footer className="mt-16 flex flex-col items-center justify-between gap-5 border-t border-white/10 py-8 text-center md:flex-row md:text-left">
             <Link href="/">
               <img
@@ -577,11 +536,9 @@ export default function PanelPage() {
                 className="h-16 w-28 object-contain"
               />
             </Link>
-
             <p className="text-xs text-slate-500">
               Instituto de Innovación y Ciencias Aplicadas · Portal académico
             </p>
-
             <a
               href="#inicio-panel"
               className="text-sm font-semibold text-[#75E5FF] transition hover:text-white"

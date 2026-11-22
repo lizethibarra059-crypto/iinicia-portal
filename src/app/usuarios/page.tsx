@@ -64,6 +64,11 @@ export default function UsuariosPage() {
   const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
+  const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [nombreEdicion, setNombreEdicion] = useState("");
+  const [rolEdicion, setRolEdicion] = useState("estudiante");
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+
   const cargarUsuarios = useCallback(
     async (
       token: string,
@@ -85,16 +90,12 @@ export default function UsuariosPage() {
           parametros.set("rol", rolActualFiltro);
         }
 
-        const respuesta = await fetch(
-          `${API}?${parametros.toString()}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "X-MFA-Token": mfaToken,
-            },
-          }
-        );
+        const respuesta = await fetch(`${API}?${parametros.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "X-MFA-Token": mfaToken,
+          },
+        });
 
         const resultado = await respuesta.json();
 
@@ -191,11 +192,8 @@ export default function UsuariosPage() {
     await cargarUsuarios(token, mfaToken, busqueda, filtroRol);
   }
 
-  async function crearUsuario(
-    evento: React.FormEvent<HTMLFormElement>
-  ) {
+  async function crearUsuario(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-
     setEnviando(true);
     setMensaje("");
     setError("");
@@ -228,10 +226,7 @@ export default function UsuariosPage() {
         );
       }
 
-      setMensaje(
-        resultado.mensaje || "Invitación enviada correctamente."
-      );
-
+      setMensaje(resultado.mensaje || "Invitación enviada correctamente.");
       setNombre("");
       setCorreo("");
       setRol("estudiante");
@@ -248,16 +243,83 @@ export default function UsuariosPage() {
     }
   }
 
-  const totalUsuarios = usuarios.length;
+  function abrirEdicion(usuario: Usuario) {
+    setUsuarioEditando(usuario);
+    setNombreEdicion(usuario.nombre);
+    setRolEdicion(usuario.rol);
+    setMensaje("");
+    setError("");
+  }
 
+  async function guardarEdicion(
+    evento: React.FormEvent<HTMLFormElement>
+  ) {
+    evento.preventDefault();
+
+    if (!usuarioEditando) return;
+
+    setGuardandoEdicion(true);
+    setMensaje("");
+    setError("");
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      const mfaToken = sessionStorage.getItem("mfaToken");
+
+      if (!token || !mfaToken) {
+        router.replace("/login");
+        return;
+      }
+
+      const respuesta = await fetch(`${API}/${usuarioEditando.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "X-MFA-Token": mfaToken,
+        },
+        body: JSON.stringify({
+          nombre: nombreEdicion,
+          rol: rolEdicion,
+        }),
+      });
+
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok) {
+        throw new Error(
+          resultado.message || "No se pudieron guardar los cambios."
+        );
+      }
+
+      setUsuarioEditando(null);
+      setMensaje(resultado.mensaje || "Usuario actualizado correctamente.");
+
+      await buscarUsuarios();
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error al editar el usuario."
+      );
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  }
+
+  const rolesDisponibles =
+    rolActual === "superadministrador"
+      ? [...ROLES]
+      : ["profesor", "estudiante", "aspirante", "soporte"];
+
+  const totalUsuarios = usuarios.length;
   const totalEstudiantes = usuarios.filter(
     (u) => u.rol === "estudiante"
   ).length;
-
   const totalProfesores = usuarios.filter(
     (u) => u.rol === "profesor"
   ).length;
-
   const totalConfirmados = usuarios.filter(
     (u) => u.correoConfirmado
   ).length;
@@ -279,14 +341,12 @@ export default function UsuariosPage() {
     <main className="min-h-screen bg-[#080B18] text-white">
       <div className="mx-auto max-w-7xl px-5 py-8 md:px-8">
 
-        {/* ENCABEZADO */}
         <header className="mb-9">
           <button
             onClick={() => router.push("/panel")}
-            className="mb-7 inline-flex items-center gap-2 text-sm font-semibold text-[#75E5FF] transition hover:text-white"
+            className="mb-7 text-sm font-semibold text-[#75E5FF] hover:text-white"
           >
-            <span>←</span>
-            Volver al panel
+            ← Volver al panel
           </button>
 
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
@@ -294,11 +354,9 @@ export default function UsuariosPage() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#00B9E8]">
                 Administración institucional
               </p>
-
-              <h1 className="mt-3 text-3xl font-black text-white md:text-4xl">
+              <h1 className="mt-3 text-3xl font-black md:text-4xl">
                 Gestión de usuarios
               </h1>
-
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">
                 Administra las cuentas, roles y accesos de los integrantes
                 de IINICIA desde un solo lugar.
@@ -306,9 +364,7 @@ export default function UsuariosPage() {
             </div>
 
             <div className="rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/10 px-5 py-3">
-              <p className="text-xs text-slate-400">
-                Sesión administrativa
-              </p>
+              <p className="text-xs text-slate-400">Sesión administrativa</p>
               <p className="mt-1 font-bold text-[#75E5FF]">
                 {nombresRoles[rolActual] || rolActual}
               </p>
@@ -316,79 +372,29 @@ export default function UsuariosPage() {
           </div>
         </header>
 
-        {/* TARJETAS DE ESTADÍSTICAS */}
         <section className="mb-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-          <article className="rounded-2xl border border-[#0864F5]/30 bg-gradient-to-br from-[#10254C] to-[#111A30] p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">Usuarios registrados</p>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0864F5]/20 font-bold text-[#75E5FF]">
-                US
-              </span>
-            </div>
-            <p className="mt-5 text-3xl font-black text-white">
-              {totalUsuarios}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Cuentas encontradas
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-emerald-400/20 bg-[#111A30] p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">Estudiantes</p>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 font-bold text-emerald-300">
-                ES
-              </span>
-            </div>
-            <p className="mt-5 text-3xl font-black text-white">
-              {totalEstudiantes}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Cuentas de estudiantes
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-indigo-400/20 bg-[#111A30] p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">Profesores</p>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 font-bold text-indigo-300">
-                PR
-              </span>
-            </div>
-            <p className="mt-5 text-3xl font-black text-white">
-              {totalProfesores}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Cuentas de profesores
-            </p>
-          </article>
-
-          <article className="rounded-2xl border border-cyan-400/20 bg-[#111A30] p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">Correos confirmados</p>
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 font-bold text-cyan-300">
-                OK
-              </span>
-            </div>
-            <p className="mt-5 text-3xl font-black text-white">
-              {totalConfirmados}
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Cuentas verificadas
-            </p>
-          </article>
+          {[
+            { titulo: "Usuarios registrados", total: totalUsuarios },
+            { titulo: "Estudiantes", total: totalEstudiantes },
+            { titulo: "Profesores", total: totalProfesores },
+            { titulo: "Correos confirmados", total: totalConfirmados },
+          ].map((tarjeta) => (
+            <article
+              key={tarjeta.titulo}
+              className="rounded-2xl border border-white/10 bg-[#111A30] p-5"
+            >
+              <p className="text-sm text-slate-400">{tarjeta.titulo}</p>
+              <p className="mt-5 text-3xl font-black">{tarjeta.total}</p>
+            </article>
+          ))}
         </section>
 
-        {/* FORMULARIO DE REGISTRO */}
         <section className="mb-9 overflow-hidden rounded-3xl border border-white/10 bg-[#111A30] shadow-2xl">
-          <div className="border-b border-white/10 bg-gradient-to-r from-[#10254C] to-[#111A30] px-6 py-6 md:px-8">
+          <div className="border-b border-white/10 bg-gradient-to-r from-[#10254C] to-[#111A30] px-6 py-6">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#00B9E8]">
               Nuevas cuentas
             </p>
-            <h2 className="mt-2 text-xl font-extrabold text-white">
-              Registrar usuario
-            </h2>
+            <h2 className="mt-2 text-xl font-extrabold">Registrar usuario</h2>
             <p className="mt-2 text-sm text-slate-400">
               Completa los datos para enviar una invitación de acceso.
             </p>
@@ -396,7 +402,6 @@ export default function UsuariosPage() {
 
           <form onSubmit={crearUsuario} className="space-y-6 p-6 md:p-8">
             <div className="grid gap-5 md:grid-cols-2">
-
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-300">
                   Nombre completo
@@ -406,7 +411,7 @@ export default function UsuariosPage() {
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   placeholder="Nombre del usuario"
-                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-[#00B9E8] focus:ring-2 focus:ring-[#00B9E8]/10"
+                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3.5 text-white outline-none focus:border-[#00B9E8]"
                 />
               </div>
 
@@ -420,7 +425,7 @@ export default function UsuariosPage() {
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                   placeholder="usuario@ejemplo.com"
-                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-[#00B9E8] focus:ring-2 focus:ring-[#00B9E8]/10"
+                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3.5 text-white outline-none focus:border-[#00B9E8]"
                 />
               </div>
 
@@ -431,13 +436,9 @@ export default function UsuariosPage() {
                 <select
                   value={rol}
                   onChange={(e) => setRol(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3.5 text-white outline-none transition focus:border-[#00B9E8]"
+                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3.5 text-white outline-none focus:border-[#00B9E8]"
                 >
-                  {ROLES.filter((r) =>
-                    rolActual === "superadministrador"
-                      ? true
-                      : ["profesor", "estudiante", "aspirante", "soporte"].includes(r)
-                  ).map((r) => (
+                  {rolesDisponibles.map((r) => (
                     <option key={r} value={r}>
                       {nombresRoles[r]}
                     </option>
@@ -462,29 +463,24 @@ export default function UsuariosPage() {
               <p className="text-xs text-slate-500">
                 Se enviará una invitación al correo proporcionado.
               </p>
-
               <button
                 type="submit"
                 disabled={enviando}
-                className="rounded-xl bg-gradient-to-r from-[#0864F5] to-[#00A9D6] px-7 py-3.5 font-bold text-white shadow-lg shadow-blue-950/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl bg-gradient-to-r from-[#0864F5] to-[#00A9D6] px-7 py-3.5 font-bold text-white disabled:opacity-50"
               >
-                {enviando
-                  ? "Enviando invitación..."
-                  : "+ Crear e invitar usuario"}
+                {enviando ? "Enviando invitación..." : "+ Crear e invitar usuario"}
               </button>
             </div>
           </form>
         </section>
 
-        {/* TABLA DE USUARIOS */}
         <section className="overflow-hidden rounded-3xl border border-white/10 bg-[#111A30] shadow-2xl">
-
-          <div className="flex flex-col justify-between gap-4 border-b border-white/10 px-6 py-6 md:flex-row md:items-center md:px-8">
+          <div className="flex flex-col justify-between gap-4 border-b border-white/10 px-6 py-6 md:flex-row md:items-center">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Directorio institucional
               </p>
-              <h2 className="mt-2 text-xl font-extrabold text-white">
+              <h2 className="mt-2 text-xl font-extrabold">
                 Usuarios registrados
               </h2>
               <p className="mt-2 text-sm text-slate-400">
@@ -495,15 +491,13 @@ export default function UsuariosPage() {
             <button
               onClick={buscarUsuarios}
               disabled={cargandoUsuarios}
-              className="rounded-xl border border-[#0864F5]/40 bg-[#0864F5]/10 px-5 py-3 text-sm font-bold text-[#75E5FF] transition hover:bg-[#0864F5]/20 disabled:opacity-50"
+              className="rounded-xl border border-[#0864F5]/40 bg-[#0864F5]/10 px-5 py-3 text-sm font-bold text-[#75E5FF] disabled:opacity-50"
             >
               {cargandoUsuarios ? "Actualizando..." : "↻ Actualizar"}
             </button>
           </div>
 
-          {/* BUSCADOR Y FILTROS */}
-          <div className="grid gap-4 border-b border-white/10 p-6 md:grid-cols-3 md:px-8">
-
+          <div className="grid gap-4 border-b border-white/10 p-6 md:grid-cols-3">
             <div className="md:col-span-2">
               <label className="mb-2 block text-xs font-semibold text-slate-400">
                 Buscar usuario
@@ -515,7 +509,7 @@ export default function UsuariosPage() {
                   if (e.key === "Enter") buscarUsuarios();
                 }}
                 placeholder="Buscar por nombre o correo..."
-                className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-[#00B9E8]"
+                className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3 text-sm text-white outline-none focus:border-[#00B9E8]"
               />
             </div>
 
@@ -541,16 +535,15 @@ export default function UsuariosPage() {
               <button
                 onClick={buscarUsuarios}
                 disabled={cargandoUsuarios}
-                className="rounded-xl bg-[#0864F5] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#0052D6] disabled:opacity-50"
+                className="rounded-xl bg-[#0864F5] px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
               >
                 Buscar usuarios
               </button>
             </div>
           </div>
 
-          {/* CONTENIDO DE LA TABLA */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left text-sm">
+            <table className="w-full min-w-[950px] text-left text-sm">
               <thead className="bg-[#0B1020] text-xs uppercase tracking-wider text-slate-400">
                 <tr>
                   <th className="px-6 py-5">Usuario</th>
@@ -558,69 +551,87 @@ export default function UsuariosPage() {
                   <th className="px-6 py-5">Rol</th>
                   <th className="px-6 py-5">Registro</th>
                   <th className="px-6 py-5">Estado</th>
+                  <th className="px-6 py-5">Acciones</th>
                 </tr>
               </thead>
 
               <tbody>
-                {usuarios.map((usuario) => (
-                  <tr
-                    key={usuario.id}
-                    className="border-t border-white/5 transition hover:bg-white/[0.03]"
-                  >
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/15 font-bold text-[#75E5FF]">
-                          {(usuario.nombre || "U").charAt(0).toUpperCase()}
+                {usuarios.map((usuario) => {
+                  const puedeEditar =
+                    usuario.id !== undefined &&
+                    (rolActual === "superadministrador" ||
+                      ["profesor", "estudiante", "aspirante", "soporte"].includes(usuario.rol));
+
+                  return (
+                    <tr
+                      key={usuario.id}
+                      className="border-t border-white/5 transition hover:bg-white/[0.03]"
+                    >
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/15 font-bold text-[#75E5FF]">
+                            {(usuario.nombre || "U").charAt(0).toUpperCase()}
+                          </div>
+                          <span className="font-semibold text-white">
+                            {usuario.nombre || "Sin nombre"}
+                          </span>
                         </div>
-                        <span className="font-semibold text-white">
-                          {usuario.nombre || "Sin nombre"}
+                      </td>
+
+                      <td className="px-6 py-5 text-slate-400">
+                        {usuario.correo}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold ${
+                            coloresRoles[usuario.rol] ||
+                            "border-white/10 bg-white/5 text-slate-300"
+                          }`}
+                        >
+                          {nombresRoles[usuario.rol] || usuario.rol}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-5 text-slate-400">
-                      {usuario.correo}
-                    </td>
+                      <td className="px-6 py-5 text-slate-400">
+                        {usuario.fechaRegistro
+                          ? new Date(usuario.fechaRegistro).toLocaleDateString("es-MX")
+                          : "No disponible"}
+                      </td>
 
-                    <td className="px-6 py-5">
-                      <span
-                        className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-bold ${
-                          coloresRoles[usuario.rol] ||
-                          "border-white/10 bg-white/5 text-slate-300"
-                        }`}
-                      >
-                        {nombresRoles[usuario.rol] || usuario.rol}
-                      </span>
-                    </td>
+                      <td className="px-6 py-5">
+                        {usuario.correoConfirmado ? (
+                          <span className="text-xs font-semibold text-emerald-300">
+                            ● Confirmado
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold text-orange-300">
+                            ● Pendiente
+                          </span>
+                        )}
+                      </td>
 
-                    <td className="px-6 py-5 text-slate-400">
-                      {usuario.fechaRegistro
-                        ? new Date(usuario.fechaRegistro).toLocaleDateString("es-MX")
-                        : "No disponible"}
-                    </td>
-
-                    <td className="px-6 py-5">
-                      {usuario.correoConfirmado ? (
-                        <span className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-300">
-                          <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                          Confirmado
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 text-xs font-semibold text-orange-300">
-                          <span className="h-2 w-2 rounded-full bg-orange-400" />
-                          Pendiente
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-6 py-5">
+                        {puedeEditar ? (
+                          <button
+                            onClick={() => abrirEdicion(usuario)}
+                            className="rounded-lg border border-[#00B9E8]/30 bg-[#00B9E8]/10 px-4 py-2 text-xs font-bold text-[#75E5FF] hover:bg-[#00B9E8]/20"
+                          >
+                            Editar
+                          </button>
+                        ) : (
+                          <span className="text-xs text-slate-500">
+                            Restringido
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {!cargandoUsuarios && usuarios.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="px-6 py-14 text-center text-slate-500"
-                    >
+                    <td colSpan={6} className="px-6 py-14 text-center text-slate-500">
                       No se encontraron usuarios.
                     </td>
                   </tr>
@@ -640,6 +651,86 @@ export default function UsuariosPage() {
           </div>
         </section>
 
+        {usuarioEditando && (
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 p-4">
+            <form
+              onSubmit={guardarEdicion}
+              className="w-full max-w-lg space-y-5 rounded-2xl border border-white/10 bg-[#111A30] p-6 shadow-2xl"
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#00B9E8]">
+                  Administración de cuentas
+                </p>
+                <h2 className="mt-2 text-2xl font-bold">
+                  Editar usuario
+                </h2>
+                <p className="mt-2 text-sm text-slate-400">
+                  {usuarioEditando.correo}
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  Nombre completo
+                </label>
+                <input
+                  required
+                  value={nombreEdicion}
+                  onChange={(e) => setNombreEdicion(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3 text-white outline-none focus:border-[#00B9E8]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  Rol
+                </label>
+                <select
+                  value={rolEdicion}
+                  onChange={(e) => setRolEdicion(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-[#080B18] px-4 py-3 text-white outline-none focus:border-[#00B9E8]"
+                >
+                  {rolesDisponibles.map((r) => (
+                    <option key={r} value={r}>
+                      {nombresRoles[r]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {error && (
+                <p className="rounded-lg bg-red-500/10 p-3 text-sm text-red-300">
+                  {error}
+                </p>
+              )}
+
+              <div className="flex justify-end gap-3 border-t border-white/10 pt-5">
+                <button
+                  type="button"
+                  onClick={() => setUsuarioEditando(null)}
+                  disabled={guardandoEdicion}
+                  className="rounded-xl border border-white/10 px-5 py-3 text-sm text-slate-300"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={guardandoEdicion || !nombreEdicion.trim()}
+                  className="rounded-xl bg-[#0864F5] px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {mensaje && (
+          <div className="fixed bottom-5 left-5 z-[10001] rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-4 text-sm text-emerald-300 shadow-xl">
+            {mensaje}
+          </div>
+        )}
       </div>
     </main>
   );

@@ -42,21 +42,46 @@ export class MoodleService {
 
     try {
       const response = await fetch(url);
+      const texto = await response.text();
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      let data: any;
+
+      try {
+        data = JSON.parse(texto);
+      } catch {
+        throw new Error(
+          `Moodle respondió con contenido no válido: ${texto.slice(0, 500)}`,
+        );
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${texto.slice(0, 500)}`);
+      }
 
-      if (data && data.exception) {
-        throw new Error(data.message ?? "Error devuelto por Moodle");
+      if (data?.exception) {
+        throw new Error(
+          [
+            data.message,
+            data.errorcode ? `Código: ${data.errorcode}` : "",
+            data.debuginfo ? `Detalle: ${data.debuginfo}` : "",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        );
       }
 
       return data;
-    } catch {
+    } catch (error) {
+      const detalle =
+        error instanceof Error ? error.message : String(error);
+
+      console.error(
+        `[MoodleService] Error en ${functionName}:`,
+        detalle,
+      );
+
       throw new InternalServerErrorException(
-        "No fue posible consultar la información de Moodle.",
+        `Error al consultar Moodle (${functionName}): ${detalle}`,
       );
     }
   }
@@ -73,5 +98,38 @@ export class MoodleService {
     return this.callMoodle("core_course_get_contents", {
       courseid: String(courseId),
     });
+  }
+
+  async getEnrolledUsers(courseId: number) {
+    return this.callMoodle("core_enrol_get_enrolled_users", {
+      courseid: String(courseId),
+    });
+  }
+
+  // Obtiene tareas, cuestionarios y otros elementos de las unidades.
+  async getAssignments(courseId: number) {
+    const secciones = await this.getCourseContents(courseId);
+
+    if (!Array.isArray(secciones)) {
+      return [];
+    }
+
+    const actividades = secciones.flatMap((seccion: any) => {
+      if (!Array.isArray(seccion.modules)) {
+        return [];
+      }
+
+      return seccion.modules.map((modulo: any) => ({
+        id: modulo.id,
+        name: modulo.name,
+        modname: modulo.modname,
+        description: modulo.description || "",
+        url: modulo.url || "",
+        section: seccion.name || "General",
+        visible: modulo.visible,
+      }));
+    });
+
+    return actividades;
   }
 }

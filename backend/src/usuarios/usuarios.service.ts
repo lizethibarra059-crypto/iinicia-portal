@@ -1,8 +1,10 @@
 
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from "@nestjs/common";
 import { SupabaseService } from "../supabase/supabase.service.js";
 
@@ -75,8 +77,6 @@ export class UsuariosService {
       };
     });
 
-    // El administrador normal solo puede consultar
-    // los roles que tiene permitido gestionar.
     if (opciones.rolSolicitante === "administrador") {
       const rolesPermitidos = [
         "profesor",
@@ -155,6 +155,81 @@ export class UsuariosService {
         nombre,
         correo,
         rol,
+      },
+    };
+  }
+
+  async editarUsuario(
+    id: string,
+    nombre: string,
+    rol: Rol,
+    rolSolicitante: string,
+    solicitanteId: string,
+  ) {
+    if (id === solicitanteId) {
+      throw new ForbiddenException(
+        "No puedes modificar tu propia cuenta desde esta sección.",
+      );
+    }
+
+    const supabase = this.supabaseService.getClient();
+
+    const { data: perfilActual, error: errorConsulta } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (errorConsulta) {
+      throw new InternalServerErrorException(
+        "No se pudo consultar el perfil del usuario.",
+      );
+    }
+
+    if (!perfilActual) {
+      throw new NotFoundException("No se encontró el usuario.");
+    }
+
+    const rolesProtegidos = [
+      "superadministrador",
+      "administrador",
+      "coordinador",
+    ];
+
+    if (
+      rolSolicitante === "administrador" &&
+      (
+        rolesProtegidos.includes(perfilActual.role) ||
+        !["profesor", "estudiante", "aspirante", "soporte"].includes(rol)
+      )
+    ) {
+      throw new ForbiddenException(
+        "No tienes permisos para modificar este usuario o asignar ese rol.",
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: nombre,
+        role: rol,
+      })
+      .eq("id", id)
+      .select("id, full_name, role")
+      .single();
+
+    if (error || !data) {
+      throw new BadRequestException(
+        "No se pudieron guardar los cambios del usuario.",
+      );
+    }
+
+    return {
+      mensaje: "Usuario actualizado correctamente.",
+      usuario: {
+        id: data.id,
+        nombre: data.full_name,
+        rol: data.role,
       },
     };
   }
