@@ -4,7 +4,7 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
-  private supabaseClient: SupabaseClient;
+  private supabaseClient!: SupabaseClient;
 
   constructor(private readonly configService: ConfigService) {}
 

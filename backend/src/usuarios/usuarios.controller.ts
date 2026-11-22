@@ -4,13 +4,17 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
 import { AdminGuard } from "../auth/admin.guard.js";
 import { UsuariosService } from "./usuarios.service.js";
+import { RolesGuard } from "../auth/roles.guard.js";
+import { Roles } from "../auth/roles.decorator.js";
 
 type SolicitudAutenticada = Request & {
   user?: {
@@ -38,11 +42,29 @@ type CrearUsuarioBody = {
 };
 
 @Controller("api/usuarios")
+@UseGuards(AdminGuard, RolesGuard)
+@Roles("superadministrador", "administrador")
 export class UsuariosController {
   constructor(private readonly usuariosService: UsuariosService) {}
 
+  @Get()
+  async listar(
+    @Req() solicitud: SolicitudAutenticada,
+    @Query("busqueda") busqueda?: string,
+    @Query("rol") rol?: string,
+  ) {
+    if (rol && !ROLES.includes(rol as Rol)) {
+      throw new BadRequestException("El filtro de rol no es válido.");
+    }
+
+    return this.usuariosService.listarUsuarios({
+      busqueda: busqueda?.trim(),
+      rol,
+      rolSolicitante: solicitud.user?.role ?? "",
+    });
+  }
+
   @Post()
-  @UseGuards(AdminGuard)
   async crear(
     @Req() solicitud: SolicitudAutenticada,
     @Body() body: CrearUsuarioBody,
@@ -66,13 +88,13 @@ export class UsuariosController {
     }
 
     if (
-     solicitud.user?.role === "administrador" &&
-     !["profesor", "estudiante", "aspirante", "soporte"].includes(rol)
-  ) {
-    throw new ForbiddenException(
-     "El administrador no tiene permiso para asignar este rol.",
-    );
-  }
+      solicitud.user?.role === "administrador" &&
+      !["profesor", "estudiante", "aspirante", "soporte"].includes(rol)
+    ) {
+      throw new ForbiddenException(
+        "El administrador no tiene permiso para asignar este rol.",
+      );
+    }
 
     return this.usuariosService.crearUsuario(
       nombre,

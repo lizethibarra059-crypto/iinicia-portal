@@ -2,11 +2,20 @@
 import {
   Controller,
   Get,
+  Req,
   UseGuards,
   ServiceUnavailableException,
 } from "@nestjs/common";
+import type { Request } from "express";
 import { SupabaseService } from "./supabase/supabase.service.js";
-import { AdminGuard } from "./auth/admin.guard.js";
+import { RolesGuard } from "./auth/roles.guard.js";
+
+type SolicitudAutenticada = Request & {
+  user?: {
+    id: string;
+    role: string;
+  };
+};
 
 @Controller("api/roles")
 export class RolesController {
@@ -41,6 +50,15 @@ export class RolesController {
     return {
       conectado: true,
       mensaje: "Conexión con Supabase correcta",
+    };
+  }
+
+  @Get("mi-rol")
+  @UseGuards(RolesGuard)
+  obtenerMiRol(@Req() solicitud: SolicitudAutenticada) {
+    return {
+      id: solicitud.user?.id,
+      rol: solicitud.user?.role,
     };
   }
 }

@@ -4,14 +4,26 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  UseGuards,
 } from "@nestjs/common";
 import { MoodleService } from "./moodle.service.js";
+import { RolesGuard } from "../auth/roles.guard.js";
+import { Roles } from "../auth/roles.decorator.js";
 
 @Controller("moodle")
+@UseGuards(RolesGuard)
 export class MoodleController {
   constructor(private readonly moodleService: MoodleService) {}
 
   @Get("estado")
+  @Roles(
+    "superadministrador",
+    "administrador",
+    "coordinador",
+    "profesor",
+    "estudiante",
+    "soporte",
+  )
   async getEstado() {
     const info = await this.moodleService.getSiteInfo();
 
@@ -24,6 +36,7 @@ export class MoodleController {
   }
 
   @Get("cursos")
+  @Roles("profesor", "estudiante", "coordinador")
   async getCursos() {
     const cursos = await this.moodleService.getCourses();
 
@@ -35,11 +48,11 @@ export class MoodleController {
   }
 
   @Get("cursos/:id/contenidos")
+  @Roles("profesor", "estudiante", "coordinador")
   async getContenidos(
     @Param("id", ParseIntPipe) id: number,
   ) {
-    const contenidos =
-      await this.moodleService.getCourseContents(id);
+    const contenidos = await this.moodleService.getCourseContents(id);
 
     return {
       conectado: true,

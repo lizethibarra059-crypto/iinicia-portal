@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import type { Request } from "express";
 import { SupabaseService } from "../supabase/supabase.service.js";
+import { AutenticacionService } from "../autenticacion/autenticacion.service.js";
 
 type SolicitudAutenticada = Request & {
   user?: {
@@ -18,13 +19,17 @@ type SolicitudAutenticada = Request & {
 
 @Injectable()
 export class AdminGuard implements CanActivate {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(
+    private readonly supabaseService: SupabaseService,
+    private readonly autenticacionService: AutenticacionService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request =
       context.switchToHttp().getRequest<SolicitudAutenticada>();
 
     const authorization = request.headers.authorization;
+    const mfaToken = request.headers["x-mfa-token"];
 
     if (!authorization?.startsWith("Bearer ")) {
       throw new UnauthorizedException(
@@ -32,22 +37,27 @@ export class AdminGuard implements CanActivate {
       );
     }
 
-    const token = authorization.slice(7);
-
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .auth.getUser(token);
-
-    if (error || !data.user) {
-      throw new UnauthorizedException("La sesión no es válida.");
+    if (typeof mfaToken !== "string") {
+      throw new UnauthorizedException(
+        "Debes completar la verificación de correo.",
+      );
     }
 
-    const { data: perfil, error: errorPerfil } = await this.supabaseService
-      .getClient()
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single();
+    const token = authorization.slice(7);
+
+    const usuarioId =
+      await this.autenticacionService.validarSegundoFactor(
+        token,
+        mfaToken,
+      );
+
+    const { data: perfil, error: errorPerfil } =
+      await this.supabaseService
+        .getClient()
+        .from("profiles")
+        .select("role")
+        .eq("id", usuarioId)
+        .single();
 
     if (errorPerfil || !perfil) {
       throw new ForbiddenException("No se encontró el perfil del usuario.");
@@ -63,7 +73,7 @@ export class AdminGuard implements CanActivate {
     }
 
     request.user = {
-      id: data.user.id,
+      id: usuarioId,
       role: perfil.role,
     };
 
