@@ -102,6 +102,8 @@ export class MoodleController {
     "superadministrador",
     "administrador",
     "coordinador",
+    "profesor",
+    "estudiante",
   )
   async getActividades(
     @Param("id", ParseIntPipe) id: number,

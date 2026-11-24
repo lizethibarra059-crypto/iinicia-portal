@@ -5,8 +5,21 @@ import { AppModule } from "./app.module.js";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const frontendUrl = process.env.FRONTEND_URL;
+
+  const allowedOrigins = [
+    "http://localhost:3000",
+    frontendUrl,
+  ].filter((origin): origin is string => Boolean(origin));
+
   app.enableCors({
-    origin: "http://localhost:3000",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Origen no permitido por CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
@@ -15,7 +28,11 @@ async function bootstrap() {
     ],
   });
 
-  await app.listen(process.env.PORT ?? 3001);
+  const port = Number(process.env.PORT) || 3001;
+
+  await app.listen(port, "0.0.0.0");
+
+  console.log(`IINICIA Backend ejecutándose en el puerto ${port}`);
 }
 
 bootstrap();

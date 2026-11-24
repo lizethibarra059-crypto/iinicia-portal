@@ -5,8 +5,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+
 import CursosMoodle from "../CursosMoodle";
 import CoordinadorMoodle from "../CoordinadorMoodle";
+import IncidenciasSoporte from "../IncidenciasSoporte";
+import FormularioIncidencia from "../FormularioIncidencia";
+import ProfesorMoodle from "../ProfesorMoodle";
+import EntregasDocumentos from "../EntregasDocumentos";
+import GestionAcademica from "../GestionAcademica";
 
 type Perfil = {
   full_name: string;
@@ -25,20 +31,24 @@ const opcionesPorRol: Record<string, Opcion[]> = {
   superadministrador: [
     {
       titulo: "Administración global",
-      descripcion: "Supervisar la configuración y administración general de IINICIA.",
+      descripcion:
+        "Supervisar la configuración y administración general de IINICIA.",
       icono: "GL",
     },
     {
       titulo: "Gestión de usuarios y roles",
-      descripcion: "Consultar y administrar las cuentas y los roles de la plataforma.",
+      descripcion:
+        "Consultar y administrar las cuentas y los roles de la plataforma.",
       icono: "US",
     },
     {
       titulo: "Supervisión del sistema",
-      descripcion: "Consultar el estado general y los servicios del portal.",
+      descripcion:
+        "Consultar el estado general y los servicios del portal.",
       icono: "SI",
     },
   ],
+
   administrador: [
     {
       titulo: "Gestión de usuarios",
@@ -52,57 +62,71 @@ const opcionesPorRol: Record<string, Opcion[]> = {
     },
     {
       titulo: "Gestión académica",
-      descripcion: "Consultar y organizar las actividades del portal.",
+      descripcion:
+        "Consultar y organizar las actividades del portal.",
       icono: "AC",
     },
   ],
+
   profesor: [
     {
       titulo: "Mis documentos",
-      descripcion: "Consultar y gestionar tus documentos académicos.",
+      descripcion:
+        "Consultar y gestionar tus documentos académicos.",
       icono: "DO",
     },
   ],
+
   estudiante: [
     {
       titulo: "Materiales académicos",
-      descripcion: "Acceder a los recursos de aprendizaje disponibles.",
+      descripcion:
+        "Acceder a los recursos de aprendizaje disponibles.",
       icono: "MA",
     },
   ],
+
   coordinador: [
     {
       titulo: "Supervisión académica",
-      descripcion: "Consultar cursos, participantes y actividades académicas.",
+      descripcion:
+        "Consultar cursos, participantes y actividades académicas.",
       icono: "SA",
     },
     {
       titulo: "Seguimiento de cursos",
-      descripcion: "Dar seguimiento a los cursos registrados en Moodle.",
+      descripcion:
+        "Dar seguimiento a los cursos registrados en Moodle.",
       icono: "CU",
     },
   ],
+
   aspirante: [
     {
       titulo: "Información de ingreso",
-      descripcion: "Consultar información para ingresar a IINICIA.",
+      descripcion:
+        "Consultar información para ingresar a IINICIA.",
       icono: "AD",
     },
     {
       titulo: "Proceso de admisión",
-      descripcion: "Consultar información sobre el proceso de ingreso.",
+      descripcion:
+        "Consultar información sobre el proceso de ingreso.",
       icono: "IN",
     },
   ],
+
   soporte: [
     {
       titulo: "Soporte técnico",
-      descripcion: "Consultar opciones de asistencia técnica.",
+      descripcion:
+        "Consultar y atender las solicitudes de asistencia técnica.",
       icono: "ST",
     },
     {
       titulo: "Incidencias",
-      descripcion: "Preparar el seguimiento de problemas técnicos.",
+      descripcion:
+        "Revisar reportes y dar seguimiento a los problemas técnicos.",
       icono: "IC",
     },
   ],
@@ -162,7 +186,9 @@ export default function PanelPage() {
         if (!respuestaMfa.ok) {
           sessionStorage.removeItem("mfaToken");
           sessionStorage.removeItem("idVerificacion");
+
           await supabase.auth.signOut();
+
           if (activo) router.replace("/login");
           return;
         }
@@ -175,6 +201,7 @@ export default function PanelPage() {
         if (usuarioError || !usuarioData.user) {
           sessionStorage.removeItem("mfaToken");
           await supabase.auth.signOut();
+
           if (activo) router.replace("/login");
           return;
         }
@@ -197,6 +224,7 @@ export default function PanelPage() {
         setCargando(false);
       } catch {
         if (!activo) return;
+
         setErrorPerfil(true);
         setCargando(false);
       }
@@ -231,6 +259,7 @@ export default function PanelPage() {
       <main className="flex min-h-screen items-center justify-center bg-[#080B18] text-white">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-[#00B9E8]" />
+
           <p className="mt-5 text-sm text-slate-400">
             Cargando tu perfil...
           </p>
@@ -246,19 +275,23 @@ export default function PanelPage() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-2xl text-red-400">
             !
           </div>
+
           <h1 className="mt-6 text-xl font-bold">
             No pudimos cargar tu perfil
           </h1>
+
           <p className="mt-3 leading-7 text-slate-400">
-            Comprueba tu conexión e inténtalo de nuevo. Si el problema continúa,
-            revisaremos la configuración de Supabase.
+            Comprueba tu conexión e inténtalo de nuevo. Si el problema
+            continúa, revisaremos la configuración de Supabase.
           </p>
+
           <button
             onClick={() => window.location.reload()}
             className="mt-6 rounded-xl bg-[#0864F5] px-6 py-3 font-bold text-white transition hover:bg-[#0052D6]"
           >
             Reintentar
           </button>
+
           <button
             onClick={cerrarSesion}
             className="mt-3 block w-full rounded-xl border border-white/10 px-6 py-3 font-semibold text-slate-300 transition hover:bg-white/5"
@@ -284,6 +317,7 @@ export default function PanelPage() {
               className="h-24 w-40 object-contain object-left"
             />
           </Link>
+
           <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#00B9E8]">
             Portal académico
           </p>
@@ -293,6 +327,7 @@ export default function PanelPage() {
           <p className="mb-4 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
             Menú principal
           </p>
+
           <nav className="space-y-2">
             <a
               href="#inicio-panel"
@@ -303,6 +338,7 @@ export default function PanelPage() {
               </span>
               Inicio
             </a>
+
             <a
               href="#espacio-academico"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
@@ -312,6 +348,7 @@ export default function PanelPage() {
               </span>
               Mi espacio académico
             </a>
+
             <a
               href="#mis-opciones"
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
@@ -324,10 +361,14 @@ export default function PanelPage() {
           </nav>
 
           <div className="mt-12 rounded-2xl border border-[#0864F5]/20 bg-gradient-to-br from-[#0864F5]/15 to-[#00B9E8]/5 p-4">
-            <p className="text-xs font-bold text-[#75E5FF]">IINICIA</p>
+            <p className="text-xs font-bold text-[#75E5FF]">
+              IINICIA
+            </p>
+
             <p className="mt-2 text-sm font-semibold text-white">
               Educación e innovación
             </p>
+
             <p className="mt-2 text-xs leading-5 text-slate-400">
               Tu espacio para aprender, crecer y desarrollar nuevas ideas.
             </p>
@@ -339,13 +380,18 @@ export default function PanelPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0864F5]/20 font-bold text-[#75E5FF]">
               {perfil.full_name?.charAt(0)?.toUpperCase() || "U"}
             </div>
+
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-white">
                 {perfil.full_name || "Usuario"}
               </p>
-              <p className="text-xs text-slate-400">{nombreRol}</p>
+
+              <p className="text-xs text-slate-400">
+                {nombreRol}
+              </p>
             </div>
           </div>
+
           <button
             onClick={cerrarSesion}
             disabled={cerrandoSesion}
@@ -368,24 +414,32 @@ export default function PanelPage() {
                 />
               </Link>
             </div>
+
             <div className="hidden lg:block">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Plataforma institucional
               </p>
+
               <p className="mt-1 text-sm text-slate-400">
                 Instituto de Innovación y Ciencias Aplicadas
               </p>
             </div>
+
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-bold text-white">
                   {perfil.full_name || "Usuario"}
                 </p>
-                <p className="text-xs text-slate-400">{nombreRol}</p>
+
+                <p className="text-xs text-slate-400">
+                  {nombreRol}
+                </p>
               </div>
+
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/15 font-bold text-[#75E5FF]">
                 {perfil.full_name?.charAt(0)?.toUpperCase() || "U"}
               </div>
+
               <button
                 onClick={cerrarSesion}
                 disabled={cerrandoSesion}
@@ -403,12 +457,15 @@ export default function PanelPage() {
             className="relative overflow-hidden rounded-3xl border border-[#0864F5]/30 bg-gradient-to-br from-[#10254C] via-[#10203E] to-[#10182C] p-7 shadow-2xl shadow-blue-950/20 md:p-10"
           >
             <div className="pointer-events-none absolute -right-20 -top-32 h-80 w-80 rounded-full border border-[#00B9E8]/20" />
+
             <div className="pointer-events-none absolute -right-8 -top-20 h-60 w-60 rounded-full border border-[#0864F5]/30" />
+
             <div className="pointer-events-none absolute bottom-0 right-1/4 h-40 w-40 rounded-full bg-[#0864F5]/20 blur-[80px]" />
 
             <div className="relative max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#00B9E8]/30 bg-[#00B9E8]/10 px-4 py-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[#00B9E8]" />
+
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#75E5FF]">
                   Portal académico IINICIA
                 </span>
@@ -423,15 +480,16 @@ export default function PanelPage() {
               </h1>
 
               <p className="mt-5 max-w-2xl leading-7 text-slate-300">
-                Este es tu espacio personal dentro del portal IINICIA. Desde
-                aquí puedes consultar tus recursos y acceder a las herramientas
-                disponibles para tu cuenta.
+                Este es tu espacio personal dentro del portal IINICIA.
+                Desde aquí puedes consultar tus recursos y acceder a las
+                herramientas disponibles para tu cuenta.
               </p>
 
               <div className="mt-7 inline-flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-5 py-3">
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
                   Tu rol
                 </span>
+
                 <span className="rounded-lg bg-[#0864F5]/20 px-3 py-1 text-sm font-bold text-[#75E5FF]">
                   {nombreRol}
                 </span>
@@ -444,13 +502,27 @@ export default function PanelPage() {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Tu plataforma
               </p>
+
               <h2 className="mt-3 text-2xl font-extrabold text-white md:text-3xl">
                 Mi espacio académico
               </h2>
+
               <p className="mt-3 text-sm leading-7 text-slate-400">
                 Accede a tus cursos, materiales y recursos académicos.
               </p>
             </div>
+
+            {perfil.role === "administrador" && (
+              <>
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
+                  <EntregasDocumentos />
+                </div>
+
+                <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
+                  <GestionAcademica />
+                </div>
+              </>
+            )}
 
             {perfil.role === "coordinador" && (
               <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
@@ -464,6 +536,27 @@ export default function PanelPage() {
                 <CursosMoodle />
               </div>
             )}
+
+            {perfil.role === "profesor" && (
+              <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
+                <ProfesorMoodle />
+              </div>
+            )}
+
+            {(perfil.role === "profesor" ||
+              perfil.role === "estudiante" ||
+              perfil.role === "coordinador" ||
+              perfil.role === "aspirante") && (
+              <div className="mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
+                <FormularioIncidencia />
+              </div>
+            )}
+
+            {perfil.role === "soporte" && (
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-4 md:p-6">
+                <IncidenciasSoporte />
+              </div>
+            )}
           </section>
 
           <section id="mis-opciones" className="mt-12">
@@ -471,9 +564,11 @@ export default function PanelPage() {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#00B9E8]">
                 Herramientas disponibles
               </p>
+
               <h2 className="mt-3 text-2xl font-extrabold text-white md:text-3xl">
                 Mis secciones
               </h2>
+
               <p className="mt-3 text-sm leading-7 text-slate-400">
                 Estas son las secciones disponibles para tu tipo de cuenta.
               </p>
@@ -486,32 +581,79 @@ export default function PanelPage() {
                     opcion.titulo === "Gestión de usuarios y roles" ||
                     opcion.titulo === "Gestión de usuarios";
 
+                  const esEntregaDocumentos =
+                    opcion.titulo === "Entregas de documentos";
+
+                  const esGestionAcademica =
+                    opcion.titulo === "Gestión académica";
+
+                  const esAdministracionGlobal =
+                    opcion.titulo === "Administración global";
+
+                  const esSupervisionSistema =
+                    opcion.titulo === "Supervisión del sistema";
+
                   return (
                     <article
                       key={opcion.titulo}
                       className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#111A30] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#0864F5]/60 hover:bg-[#151F39] hover:shadow-xl hover:shadow-blue-950/20"
                     >
                       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#0864F5]/10 blur-2xl transition group-hover:bg-[#00B9E8]/15" />
+
                       <div className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-[#0864F5]/30 bg-[#0864F5]/15 text-sm font-black tracking-wider text-[#75E5FF]">
                         {opcion.icono}
                       </div>
+
                       <h3 className="relative mt-6 text-lg font-bold text-white">
                         {opcion.titulo}
                       </h3>
+
                       <p className="relative mt-3 text-sm leading-7 text-slate-400">
                         {opcion.descripcion}
                       </p>
-                      {esGestionUsuarios ? (
+
+                      {esAdministracionGlobal ? (
+                        <Link
+                          href="/administracion-global"
+                          className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#75E5FF] transition hover:gap-4"
+                        >
+                          Abrir administración global →
+                        </Link>
+                      ) : esSupervisionSistema ? (
+                        <Link
+                          href="/supervision-sistema"
+                          className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#75E5FF] transition hover:gap-4"
+                        >
+                          Abrir supervisión del sistema →
+                        </Link>
+                      ) : esGestionUsuarios ? (
                         <Link
                           href="/usuarios"
                           className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#75E5FF] transition hover:gap-4"
                         >
                           Abrir gestión de usuarios →
                         </Link>
+                      ) : esEntregaDocumentos ? (
+                        <a
+                          href="#espacio-academico"
+                          className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#75E5FF] transition hover:gap-4"
+                        >
+                          Consultar entregas →
+                        </a>
+                      ) : esGestionAcademica ? (
+                        <a
+                          href="#espacio-academico"
+                          className="relative mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#75E5FF] transition hover:gap-4"
+                        >
+                          Consultar gestión académica →
+                        </a>
                       ) : (
                         <p className="relative mt-6 inline-flex items-center gap-2 text-xs font-semibold text-[#00B9E8]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#00B9E8]" />
-                          {perfil.role === "coordinador"
+
+                          {perfil.role === "coordinador" ||
+                          perfil.role === "soporte" ||
+                          perfil.role === "profesor"
                             ? "Consulta disponible en espacio académico"
                             : "Sección en preparación"}
                         </p>
@@ -522,8 +664,8 @@ export default function PanelPage() {
               </div>
             ) : (
               <p className="rounded-2xl border border-white/10 bg-[#111A30] p-6 text-slate-400">
-                Tu cuenta todavía no tiene secciones asignadas. Contacta al
-                administrador del portal.
+                Tu cuenta todavía no tiene secciones asignadas. Contacta
+                al administrador del portal.
               </p>
             )}
           </section>
@@ -536,9 +678,11 @@ export default function PanelPage() {
                 className="h-16 w-28 object-contain"
               />
             </Link>
+
             <p className="text-xs text-slate-500">
               Instituto de Innovación y Ciencias Aplicadas · Portal académico
             </p>
+
             <a
               href="#inicio-panel"
               className="text-sm font-semibold text-[#75E5FF] transition hover:text-white"

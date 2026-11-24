@@ -55,7 +55,9 @@ export class MoodleService {
       }
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${texto.slice(0, 500)}`);
+        throw new Error(
+          `HTTP ${response.status}: ${texto.slice(0, 500)}`,
+        );
       }
 
       if (data?.exception) {
@@ -106,7 +108,7 @@ export class MoodleService {
     });
   }
 
-  // Obtiene tareas, cuestionarios y otros elementos de las unidades.
+  // Obtiene todas las actividades y recursos de un curso.
   async getAssignments(courseId: number) {
     const secciones = await this.getCourseContents(courseId);
 
@@ -120,13 +122,17 @@ export class MoodleService {
       }
 
       return seccion.modules.map((modulo: any) => ({
+        ...modulo,
         id: modulo.id,
-        name: modulo.name,
-        modname: modulo.modname,
+        name: modulo.name || "Sin nombre",
+        modname: modulo.modname || "desconocido",
         description: modulo.description || "",
         url: modulo.url || "",
-        section: seccion.name || "General",
         visible: modulo.visible,
+        section: seccion.name || "General",
+        sectionId: seccion.id,
+        sectionNumber: seccion.section,
+        sectionSummary: seccion.summary || "",
       }));
     });
 
